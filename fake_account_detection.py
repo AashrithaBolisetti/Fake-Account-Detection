@@ -501,7 +501,6 @@ def load_data():
         st.error(f"Critical Error: {FILE_PATH} not found in GitHub.")
         return None
 
-!pip install streamlit
 
 import pandas as pd
 import pickle
