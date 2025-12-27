@@ -10,7 +10,7 @@ def load_assets():
 
 model, tfidf, num_cols = load_assets()
 
-st.title("🛡️ Cyber-Incident Account Auditor")
+st.title("🛡️ Fake Account Detection")
 
 with st.expander("1. Individual Profile Audit", expanded=True):
     content = st.text_area("Profile Bio/Content")
