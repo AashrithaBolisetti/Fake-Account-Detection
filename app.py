@@ -3,47 +3,43 @@ import pandas as pd
 import numpy as np
 import joblib
 
-st.set_page_config(page_title="Cyber-Audit: Fake Account Detector", layout="wide")
+st.set_page_config(page_title="Cyber-Audit", layout="wide")
 
 @st.cache_resource
-def load_model_data():
-    return joblib.load('trained_model.pkl')
+def load_assets():
+    # This must match the dictionary keys in the Colab script
+    data = joblib.load('trained_model.pkl')
+    return data['model'], data['tfidf'], data['features']
 
 try:
-    data = load_model_data()
-    model = data['classifier']
-    tfidf = data['tfidf']
-    num_cols = data['numerical_cols']
+    model, tfidf, num_cols = load_assets()
 except Exception as e:
-    st.error(f"Error loading model: {e}")
+    st.error(f"Critical Error loading model: {e}")
     st.stop()
 
 st.title("🛡️ Cyber-Incident Account Auditor")
 
-st.header("1. Individual Profile Audit")
-content = st.text_area("Profile Content/Bio")
+# UI for Inputs
+content = st.text_area("Profile Bio/Content")
 col1, col2, col3 = st.columns(3)
-with col1:
-    reposts = st.number_input("Reposts", value=0)
-with col2:
-    comments = st.number_input("Comments", value=0)
-with col3:
-    likes = st.number_input("Likes", value=0)
-hour = st.slider("Post Hour (0-23)", 0, 23, 12)
+with col1: r = st.number_input("Reposts", 0)
+with col2: c = st.number_input("Comments", 0)
+with col3: l = st.number_input("Likes", 0)
+h = st.slider("Post Hour", 0, 23, 12)
 
-if st.button("Check Account"):
+if st.button("Audit Profile"):
     # 1. Vectorize text
     text_v = tfidf.transform([content if content else " "]).toarray()
+    # 2. Combine exactly like training: [Reposts, Comments, Likes, Post_Hour, ...text...]
+    input_data = np.hstack([[r, c, l, h], text_v[0]])
     
-    # 2. Combine features (MUST match the 4+1000 order)
-    input_data = np.hstack([[reposts, comments, likes, hour], text_v[0]])
-    
-    # 3. Predict with safety check
     try:
         prediction = model.predict([input_data])[0]
         if prediction == 1:
-            st.error("🚩 FLAG: Potential Fake Account Detected")
+            st.error("🚩 FLAG: Potential Fake Account")
         else:
-            st.success("✅ AUTHENTIC: Likely Legitimate Account")
-    except ValueError as ve:
-        st.error(f"Feature Mismatch: The model expects {model.n_features_in_} inputs, but you provided {len(input_data)}.")
+            st.success("✅ AUTHENTIC: Legitimate Account")
+    except ValueError:
+        st.error(f"**Feature Mismatch!**")
+        st.info(f"Model expects: {model.n_features_in_} features. App sent: {len(input_data)} features.")
+        st.warning("Please re-run the Colab script and upload the NEW trained_model.pkl.")
